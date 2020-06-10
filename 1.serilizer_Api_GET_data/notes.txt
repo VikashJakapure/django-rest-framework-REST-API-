@@ -1,0 +1,112 @@
+Django REST Framework
+_____________________________________________________
+
+Recquired packages:-
+	Django==2.2
+	djangorestframework==3.9.2
+-----------------------------------------------------------------------------------
+
+Procedure for basic setup :-
+
+	1.create your django project
+	2.create your django project app
+	3.open settings.py and install your rest_framework app as follows 
+
+	INSTALLED_APPS = [
+	    'django.contrib.admin',
+	    'django.contrib.auth',
+	    'django.contrib.contenttypes',
+	    'django.contrib.sessions',
+	    'django.contrib.messages',
+	    'django.contrib.staticfiles',
+	    'myapp',
+	    'rest_framework',
+	]
+------------------------------------------------------------------------------------
+Write model for your project app in models.py as follows:-
+	ex,
+	from django.db import models
+	class Emp(models.Model):
+	    name = models.CharField(max_length=30)
+	    email = models.EmailField(max_length=30)
+	    address = models.CharField(max_length=50)
+	    def __str__(self):
+		return self.name
+-------------------------------------------------------------------------------------
+register your model into admin site:-
+	ex,	
+	admin.site.register(Emp)
+-------------------------------------------------------------------------------------
+writing serilizers for your class
+serializers:-
+	serializers is used to convert your model data into json objects for API
+	communication 
+	
+	1.create serializers.py in your app 
+	2.import serializers from rest_framework
+	3.write serializers class for yuor model by using serializers.ModelSerializer 
+	  class use meta class to select your model and it's fields
+	ex,
+	from myapp.models import Emp
+	from rest_framework import serializers
+	class EmpSerializer(serializers.ModelSerializer):
+	    class Meta:
+		model = Emp
+		fields = '__all__'
+
+--------------------------------------------------------------------------------------
+writing view for get request 
+	1.import viewset from rest_framework
+	2.use viewsets.ModelViewSet for your model view
+	ex,
+	from rest_framework import viewsets
+	from myapp.models import  Emp
+	from myapp.serializers import EmpSerializer
+	from rest_framework.views import APIView
+	from rest_framework.response import Response
+
+	# using viewsets
+	class EmpView(viewsets.ModelViewSet):
+		queryset = Emp.objects.all()
+		serializer_class = EmpSerializer
+
+	# using apiview
+	class EmpViewAp(APIView):
+		def get(self,request):
+		    data = Emp.objects.all()
+		    serialdata = EmpSerializer(data,many=True)
+		    return Response(serialdata.data)
+
+-----------------------------------------------------------------------------------------
+url mapping for get request to access json data:-
+ 
+	1.import routers from rest_framework
+	2.register your url with router 
+	ex,
+	from django.contrib import admin
+	from django.urls import path,re_path,include
+	from rest_framework import routers
+	from myapp.views import EmpView,EmpViewAp
+
+	router = routers.DefaultRouter()
+	router.register(r'emp/',EmpView)
+
+	urlpatterns = [
+	    path('admin/', admin.site.urls),
+	    path('',include(router.urls)),
+	    path('emp/',EmpViewAp.as_view()),
+	]
+
+**note :- if your using the APIView then specify many=True while creating serilized data
+	otherwise it will through Attribute error 
+-------------------------------------------------------------------------------------------
+Check your GET request API is working or not using curl utility
+	ex,
+	curl http://127.0.0.1:8000/emp/
+____________________________________________________________________________________________
+
+
+
+
+
+

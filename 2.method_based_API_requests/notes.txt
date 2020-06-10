@@ -1,0 +1,137 @@
+Method based API get,post,pull,delete reuests.py 
+_______________________________________________________________
+
+1.Create model in your project app in models.py as follows :-
+	ex,
+	from django.db import models
+	class Emp(models.Model):
+	    name = models.CharField(max_length=30)
+	    email = models.EmailField(max_length=100)
+	    address = models.CharField(max_length=50)
+
+	    def __str__(self):
+		return self.name
+--------------------------------------------------------------------------------------------
+2.write serializer class for your model to allow json object 
+communication
+	1.create serializers.py in your app 
+	2.import serializers from rest_framework
+	3.write serializer class your model by excluding serializers.ModelFieldSerializer
+	4.select your model and it's fields using meta class		
+	ex,
+	from rest_framework import serializers
+	from mypp.models import Emp
+	class EmpSerializer(serializers.ModelSerializer):
+	    class Meta:
+		model = Emp
+		fields = '__all__'
+--------------------------------------------------------------------------------------------
+3.GET API request
+	1.open views.py of your app import your model and it's serializer class
+	2.import JsonResponse from django.http package
+	3.import JSONparser from rest_framework.parsers
+	4.write django basic funtion to handle GET API request
+	ex,
+	def emp(request):
+	    if request.method == "GET":
+		query_set = Emp.objects.all()
+		seril = EmpSerializer(query_set,many=True)
+		return JsonResponse(seril.data,safe=False)
+--------------------------------------------------------------------------------------------
+4.Map url for GET API request
+	1.create api_urls.py in your app 
+	2.In projects main urls.py map api_urls as follows
+		ex, path('api',include('myapp.api_urls.py'))
+	3.goto api_urls.py write emp pattern to access emp view 
+	ex,
+	from django.urls import path
+	from mypp.views import emp,emp_details
+	urlpatterns = [
+	    path('emp/',emp),
+	    path('emp/<int:id>',emp_details),
+	]
+--------------------------------------------------------------------------------------------
+check output using curl utility
+	ex, curl http://127.0.0.1:8000/api/emp
+
+---------------------------------------------------------------------------------------------
+5.POST API request
+	1.open views.py of your app import your model and it's serializer class
+	2.import JsonResponse from django.http package to return json response to brawoser  
+	3.import JSONparser from rest_framework.parsers which is requied to get json data
+	  from request
+		ex,
+		data=JSONparser.parser(request)	  
+	4.write django basic funtion to handle POST API request
+	ex,
+	def emp(request):
+	    if request.method == "GET":
+		query_set = Emp.objects.all()
+		seril = EmpSerializer(query_set,many=True)
+		return JsonResponse(seril.data,safe=False)
+
+	    elif request.method == "POST":
+		data = JSONParser().parse(request)
+		res = EmpSerializer(data=data)
+		if res.is_valid():
+		    res.save()
+		    return JsonResponse(res.data,status=201)
+*note :- status=201 used to indicate new object is added in standred Http responses
+--------------------------------------------------------------------------------------------
+check output using curl utility by making post request
+	ex, curl POST -d '{"name":"sai","email":"sai@gmail.com","address":"pune"}'
+	    http://127.0.0.1:8000/api/emp
+--------------------------------------------------------------------------------------------
+6.PULL API request
+	pull request is used to update information of existing object 
+	write function to handle pull request as follows:-
+	ex,
+	@csrf_exempt
+	def emp_details(request,id):
+	   if request.method == 'GET':
+		try:
+		    Emp.objects.get(id=id)
+		    query_set = Emp.objects.get(id=id)
+		    seril = EmpSerializer(query_set)
+		except Exception as e:
+		    return JsonResponse({'error':'no data for id'},status=404)
+		return JsonResponse(seril.data,safe=False)
+
+	   elif request.method == "PUT":
+		try:
+		    Emp.objects.get(id=id)
+		    query_set = Emp.objects.get(id=id)
+		    data = JSONParser().parse(request)
+		    res = EmpSerializer(query_set,data=data,partial=True)
+		    if res.is_valid():
+		        res.save()
+		        return JsonResponse(res.data, status=201)
+		except Exception as e:
+		    return JsonResponse({'error': 'no data for id'}, status=404)
+		return JsonResponse(res.data, safe=False)
+--------------------------------------------------------------------------------------------
+check output using curl utility by making pull request
+	ex, curl -X PULL -d '{"name":"sairaj"}' http://127.0.0.1:8000/api/emp/1
+--------------------------------------------------------------------------------------------
+7.DELETE API request
+	ex,
+	    elif request.method=='DELETE':
+		try:
+		    Emp.objects.get(id=id)
+		    query_set = Emp.objects.get(id=id)
+		    query_set.delete()
+		    return JsonResponse({'data':'deleted successfully'}, status=201)
+		except Exception as e:
+		    return JsonResponse({'error': 'no data for id'}, status=404)
+		return JsonResponse(res.data, safe=False)
+--------------------------------------------------------------------------------------------
+check output using curl utility by making pull request
+	ex, curl -X DELETE http://127.0.0.1:8000/api/emp/1
+____________________________________________________________________________________________ss
+
+
+
+
+
+
+

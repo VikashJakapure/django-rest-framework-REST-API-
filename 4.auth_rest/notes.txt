@@ -1,0 +1,131 @@
+Django rest framework token based authentication
+---------------------------------------------------
+Reference Site:-
+https://www.django-rest-framework.org/api-guide/authentication/
+-----------------------------------------------------------------------
+A.Configure settings file for token based authentication (optional)
+
+    1.add rest_framework.authtoken app in installed apps
+    INSTALLED_APPS = [
+        'rest_framework',
+        'rest_framework.authtoken',
+    ]
+
+    2.Choose default authentication classes for authentication
+
+     REST_FRAMEWORK = {
+         'DEFAULT_AUTHENCATION_CLASSES':{
+             'rest_framework.authtoken.TokenAuthentication',
+             'rest_framework.permissions.IsAuthenticated',
+         }
+     }
+     add this in settings.py
+------------------------------------------------------------------------
+B.Make migrations and migrate changes into database
+    1.Create your super user :-
+        python3 manage.py createsuperuser
+
+    2.Create your model :-
+
+        from django.db import models
+        class Emp(models.Model):
+            name = models.CharField(max_length=30)
+            email = models.EmailField(max_length=100)
+            address = models.CharField(max_length=60)
+
+            def __str__(self):
+                return self.name
+
+
+    3.Create your serializer for model as follows:
+
+        from rest_framework import serializers
+        from authapp.models import Emp
+        class EmpSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Emp
+                fields = '__all__'
+
+---------------------------------------------------------------------------------
+C.Use rest_framework.authentication.views import ObtainAuthToken to obtain
+  token for further authenticated communication map this view with specific
+  url as follows:-
+
+        from django.urls import path
+        from authapp.views import Access,Details
+        from rest_framework.authtoken.views import ObtainAuthToken
+
+        urlpatterns = [
+            path('auth-token',ObtainAuthToken.as_view()),
+            path('access',Access.as_view()),
+            path('details',Details.as_view()),
+
+        ]
+
+here by requesting http://127.0.0.1:8000/api/auth-token with specified username
+and password we can able to get token
+------------------------------------------------------------------------------------
+**note we can mention authenticated classes in settings.py or perticular view
+itself
+------------------------------------------------------------------------------------
+D.Write APIviews to handle requests as follows:
+
+from django.shortcuts import render
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from authapp.models import Emp
+from authapp.serialzers import EmpSerializer
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.permissions import IsAuthenticated
+
+
+class Access(APIView):
+    authentication_classes = ObtainAuthToken
+    permission_classes = IsAuthenticated
+
+    def get(self,request):
+        data = Emp.objects.all()
+        serialdata = EmpSerializer(data,many=True)
+        return Response(serialdata.data)
+
+    def post(self,request):
+        data=request.data
+        serialdata = EmpSerializer(data=data)
+        if serialdata.is_valid():
+            serialdata.save()
+            return Response({'message':'data stored successfully'},status=200)
+        else:
+            return Response({'message': 'data is not valid'},status=404)
+
+
+class Details(APIView):
+    authentication_classes = ObtainAuthToken
+    permission_classes = IsAuthenticated
+
+    def get_obj(self,email):
+        try:
+            data = Emp.objects.get(email=email)
+            return data
+        except Exception as e:
+            return Response({"message":"Provided email is not found in the database"})
+
+    def get(self,request,email):
+            data = self.get_obj(email)
+            serialdata = EmpSerializer(data)
+            return Response(serialdata.data)
+
+    def put(self,request,email):
+        info = request.data
+        data = self.get_obj(email)
+        serialdata = EmpSerializer(data,data=info,perticular=True)
+        if serialdata.is_valid():
+            serialdata.save()
+            return Response({'message':'data is updated'},status=200)
+        else:
+            return Response({"error":"data is not valid"},status=404)
+
+    def delete(self, request, email):
+        data = self.get_obj(email)
+        data.delete()
+        return Response({"message": "data deleted successf  ully"}, status=200)
+------------------------------------------------------------------------------------------------
